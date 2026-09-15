@@ -12,6 +12,7 @@ import com.deva.voice.v2.llm.GeminiProvider
 import com.deva.voice.v2.llm.MessageRole
 import com.deva.voice.v2.llm.OpenRouterProvider
 import com.deva.voice.v2.llm.TextPart as V2TextPart
+import com.deva.voice.v2.llm.InlineImagePart
 import com.google.ai.client.generativeai.type.ImagePart
 import com.google.ai.client.generativeai.type.TextPart
 import com.google.firebase.Firebase
@@ -31,6 +32,7 @@ import java.io.FileWriter
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.TimeUnit
+import java.io.ByteArrayOutputStream
 
 /**
  * Refactored GeminiApi as a singleton object.
@@ -81,7 +83,7 @@ object GeminiApi {
         chat: List<Pair<String, List<Any>>>,
         images: List<Bitmap> = emptyList(),
         modelName: String = "gemini-2.5-flash",
-        maxRetry: Int = 4,
+        maxRetry: Int = 1,
         context: Context? = null
     ): String? {
         // Network check before making any calls
@@ -116,7 +118,7 @@ object GeminiApi {
                 kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
                     android.widget.Toast.makeText(
                         MyApplication.appContext,
-                        "🔗 Calling Gemini",
+                        "Connecting to Priya AI...",
                         android.widget.Toast.LENGTH_LONG
                     ).show()
                 }
@@ -135,14 +137,15 @@ object GeminiApi {
                                 is TextPart -> V2TextPart(part.text)
                                 else -> null
                             }
+                        }.toMutableList().apply {
+                            if (role.lowercase() == "user") {
+                                images.forEach { bitmap ->
+                                    val output = ByteArrayOutputStream()
+                                    bitmap.compress(Bitmap.CompressFormat.JPEG, 85, output)
+                                    add(InlineImagePart("image/jpeg", android.util.Base64.encodeToString(output.toByteArray(), android.util.Base64.NO_WRAP)))
+                                }
+                            }
                         }
-                    )
-                }
-
-                if (images.isNotEmpty()) {
-                    Log.w(
-                        "GeminiApi",
-                        "Vision request detected. Current provider path sends text parts only."
                     )
                 }
 
@@ -150,9 +153,7 @@ object GeminiApi {
 
                 val responseText = aiProviderManager
                     .generateJson(providerMessages)
-                    ?: throw Exception(
-                        "Both Gemini and OpenRouter failed. Please check your API keys and network connection."
-                    )
+                    ?: throw Exception("No AI provider is configured.")
 
                 val responseEndTime = System.currentTimeMillis()
                 val requestTime = responseEndTime - requestStartTime

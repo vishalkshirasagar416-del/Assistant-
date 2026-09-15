@@ -18,6 +18,8 @@ class OpenRouterProvider(
 ) : AIProvider {
 
     override val name: String = "OpenRouter"
+    override val isConfigured: Boolean
+        get() = !ApiKeyManager.getOpenRouterKey(context).isNullOrBlank()
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
@@ -46,8 +48,7 @@ class OpenRouterProvider(
             .addHeader("X-Title", "Priya")
             .build()
 
-        try {
-            client.newCall(request).execute().use { response ->
+        client.newCall(request).execute().use { response ->
                 val body = response.body?.string()
                 if (!response.isSuccessful || body.isNullOrBlank()) {
                     val safeBody = body
@@ -59,7 +60,7 @@ class OpenRouterProvider(
                         "OpenRouterProvider",
                         "OpenRouter request failed: HTTP ${response.code} body=$safeBody"
                     )
-                    return@use null
+                    throw IllegalStateException("OpenRouter HTTP ${response.code}: ${safeBody.take(300)}")
                 }
 
                 val json = JSONObject(body)
@@ -70,24 +71,31 @@ class OpenRouterProvider(
                 Log.i("OpenRouterProvider", "OpenRouter request succeeded.")
                 content
             }
-        } catch (e: Exception) {
-            Log.e("OpenRouterProvider", "OpenRouter call error: ${e.message}", e)
-            null
-        }
     }
 
     private fun buildMessages(messages: List<GeminiMessage>): org.json.JSONArray {
         val array = org.json.JSONArray()
         messages.forEach { message ->
-            val text = message.parts.filterIsInstance<TextPart>().joinToString(separator = "\n") { it.text }
-            if (text.isBlank()) return@forEach
             val objectJson = JSONObject().apply {
                 put("role", when (message.role) {
                     MessageRole.USER -> "user"
                     MessageRole.MODEL -> "assistant"
                     MessageRole.TOOL -> "tool"
                 })
-                put("content", text)
+                val textParts = message.parts.filterIsInstance<TextPart>()
+                val imageParts = message.parts.filterIsInstance<InlineImagePart>()
+                if (imageParts.isEmpty()) {
+                    put("content", textParts.joinToString(separator = "\n") { it.text })
+                } else {
+                    val content = org.json.JSONArray()
+                    textParts.forEach { content.put(JSONObject().put("type", "text").put("text", it.text)) }
+                    imageParts.forEach { image ->
+                        content.put(JSONObject().put("type", "image_url").put(
+                            "image_url", JSONObject().put("url", "data:${image.mimeType};base64,${image.base64Data}")
+                        ))
+                    }
+                    put("content", content)
+                }
             }
             array.put(objectJson)
         }

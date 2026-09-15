@@ -14,13 +14,18 @@ enum class MessageRole {
 
 /**
  * A sealed interface representing a part of a message.
- * For now, we only support text parts.
  */
 @Serializable
 sealed interface ContentPart
 
 @Serializable
 data class TextPart(val text: String) : ContentPart
+
+@Serializable
+data class InlineImagePart(
+    val mimeType: String,
+    val base64Data: String
+) : ContentPart
 
 /**
  * Represents a single message in the conversation history.

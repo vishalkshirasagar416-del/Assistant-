@@ -1,6 +1,7 @@
 package com.deva.voice.v2.llm
 
 import android.content.Context
+import android.net.Uri
 import android.util.Log
 import com.deva.voice.utilities.ApiKeyManager
 import kotlinx.coroutines.Dispatchers
@@ -20,6 +21,8 @@ class GeminiProvider(
 ) : AIProvider {
 
     override val name: String = "Gemini"
+    override val isConfigured: Boolean
+        get() = apiKeyManager.hasGeminiKey(context)
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
@@ -36,7 +39,7 @@ class GeminiProvider(
             put("generationConfig", JSONObject().put("responseMimeType", "application/json"))
         }
         val request = Request.Builder()
-            .url("https://generativelanguage.googleapis.com/v1beta/models/$modelName:generateContent")
+            .url("https://generativelanguage.googleapis.com/v1beta/models/${Uri.encode(modelName)}:generateContent")
             .addHeader("x-goog-api-key", apiKey)
             .post(payload.toString().toRequestBody("application/json; charset=utf-8".toMediaType()))
             .build()
@@ -59,15 +62,22 @@ class GeminiProvider(
                     "Gemini HTTP ${response.code}: ${safeBody.take(300)}"
                 )
             }
-            val text = JSONObject(body)
-                .optJSONArray("candidates")
-                ?.optJSONObject(0)
+            val responseJson = JSONObject(body)
+            val candidate = responseJson.optJSONArray("candidates")?.optJSONObject(0)
+            val text = candidate
                 ?.optJSONObject("content")
                 ?.optJSONArray("parts")
                 ?.optJSONObject(0)
                 ?.optString("text")
                 ?.takeIf { it.isNotBlank() }
-                ?: throw IllegalStateException("Gemini returned an empty response.")
+                ?: run {
+                    val reason = responseJson.optJSONObject("promptFeedback")
+                        ?.optString("blockReason")
+                        ?.takeIf { it.isNotBlank() }
+                    throw IllegalStateException(
+                        "Gemini returned no text${reason?.let { " (blocked: $it)" } ?: ""}."
+                    )
+                }
             Log.i("GeminiProvider", "Gemini request succeeded.")
             text
         }
@@ -76,12 +86,19 @@ class GeminiProvider(
     private fun buildContents(messages: List<GeminiMessage>): JSONArray {
         val contents = JSONArray()
         messages.forEach { message ->
-            val text = message.parts.filterIsInstance<TextPart>()
-                .joinToString("\n") { it.text }
-            if (text.isBlank()) return@forEach
+            val parts = JSONArray()
+            message.parts.forEach { part ->
+                when (part) {
+                    is TextPart -> parts.put(JSONObject().put("text", part.text))
+                    is InlineImagePart -> parts.put(JSONObject().apply {
+                        put("inline_data", JSONObject().put("mime_type", part.mimeType).put("data", part.base64Data))
+                    })
+                }
+            }
+            if (parts.length() == 0) return@forEach
             contents.put(JSONObject().apply {
                 put("role", if (message.role == MessageRole.MODEL) "model" else "user")
-                put("parts", JSONArray().put(JSONObject().put("text", text)))
+                put("parts", parts)
             })
         }
         return contents

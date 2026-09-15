@@ -2,28 +2,15 @@ package com.deva.voice.v2.llm
 
 import android.util.Log
 import android.content.Intent
-import com.deva.voice.BuildConfig
 import com.deva.voice.utilities.ApiKeyManager
 import com.deva.voice.v2.AgentOutput
-import com.google.ai.client.generativeai.GenerativeModel
-import com.google.ai.client.generativeai.type.Content
-import com.google.ai.client.generativeai.type.GenerationConfig
-import com.google.ai.client.generativeai.type.RequestOptions
-import com.google.ai.client.generativeai.type.content
 import kotlinx.coroutines.delay
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import com.deva.voice.v2.logging.TaskLogger
 import android.content.Context
 import kotlinx.serialization.encodeToString
 import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
-import java.io.IOException
-import java.util.concurrent.ConcurrentHashMap
-import kotlin.time.Duration.Companion.seconds
 
 /**
  * A modern, robust Gemini API client using the official Google AI SDK.
@@ -58,29 +45,11 @@ class GeminiApi(
         private val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
     }
 
-    private val proxyUrl: String = BuildConfig.GCLOUD_PROXY_URL
-    private val proxyKey: String = BuildConfig.GCLOUD_PROXY_URL_KEY
-
-    private val httpClient = OkHttpClient()
-
     private val jsonParser = Json {
         ignoreUnknownKeys = true
         isLenient = true
         coerceInputValues = true
     }
-
-    // Cache for GenerativeModel instances to avoid repeated initializations.
-    private val modelCache = ConcurrentHashMap<String, GenerativeModel>()
-
-
-
-    private val jsonGenerationConfig = GenerationConfig.builder().apply {
-        responseMimeType = "application/json"
-//        responseSchema = agentOutputSchema
-    }.build()
-
-    private val requestOptions = RequestOptions(timeout = 60.seconds)
-
 
     /**
      * Generates a structured response from the Gemini model and parses it into an [AgentOutput] object.
@@ -135,136 +104,6 @@ class GeminiApi(
         } catch (e: Exception) {
             Log.e(TAG, "Failed to parse JSON into AgentOutput. Error: ${e.message}", e)
             null
-        }
-    }
-
-    /**
-     * AUTOMATIC DISPATCHER: Checks internal config and decides whether to use
-     * the secure proxy or a direct API call.
-     */
-    private suspend fun performApiCall(messages: List<GeminiMessage>): String {
-        return providerManager.generateJson(messages)
-            ?: throw IllegalStateException("Please add your AI API key in Settings.")
-    }
-
-    /**
-     * PROXY MODE: Performs the API call through the secure Google Cloud Function.
-     */
-    private suspend fun performProxyApiCall(messages: List<GeminiMessage>): String {
-        val proxyMessages = messages.map {
-            ProxyRequestMessage(
-                role = it.role.name.lowercase(),
-                parts = it.parts.filterIsInstance<TextPart>().map { part -> ProxyRequestPart(part.text) }
-            )
-        }
-        val requestPayload = ProxyRequestBody(modelName, proxyMessages)
-        val jsonBody = jsonParser.encodeToString(ProxyRequestBody.serializer(), requestPayload)
-
-        val request = Request.Builder()
-            .url(proxyUrl)
-            .post(jsonBody.toRequestBody(JSON_MEDIA_TYPE))
-            .addHeader("Content-Type", "application/json")
-            .addHeader("X-API-Key", proxyKey)
-            .build()
-
-        httpClient.newCall(request).execute().use { response ->
-            val responseBodyString = response.body?.string()
-            if (!response.isSuccessful || responseBodyString.isNullOrBlank()) {
-                val errorMsg = "Proxy API call failed with code: ${response.code}, body: $responseBodyString"
-                Log.e(TAG, errorMsg)
-                throw IOException(errorMsg)
-            }
-            Log.d(TAG, "Successfully received response from proxy.")
-            return responseBodyString
-        }
-    }
-
-    /**
-     * DIRECT MODE: Performs the API call using the embedded Google AI SDK.
-     */
-    private suspend fun performDirectApiCall(messages: List<GeminiMessage>): String {
-        val apiKey = apiKeyManager.getNextKey(context)
-        Log.d(TAG, "Model name = $modelName, messages = ${messages.size}")
-        
-        // Show visible debug message
-        com.deva.voice.overlay.OverlayDispatcher.show(
-            text = "🔗 Calling Gemini API...",
-            priority = com.deva.voice.overlay.OverlayPriority.CAPTION,
-            duration = 3000L
-        )
-        
-        val generativeModel = modelCache.getOrPut(apiKey) {
-            Log.d(TAG, "Creating new GenerativeModel instance")
-            GenerativeModel(
-                modelName = modelName,
-                apiKey = apiKey,
-                generationConfig = jsonGenerationConfig,
-                requestOptions = requestOptions
-            )
-        }
-        val history = convertToSdkHistory(messages)
-        
-        try {
-            Log.d(TAG, "Starting generateContent call...")
-            // Add a timeout to prevent hanging forever
-            val response = kotlinx.coroutines.withTimeout(90_000L) {
-                generativeModel.generateContent(*history.toTypedArray())
-            }
-            Log.d(TAG, "generateContent completed!")
-            
-            com.deva.voice.overlay.OverlayDispatcher.show(
-                text = "✅ Got response from Gemini!",
-                priority = com.deva.voice.overlay.OverlayPriority.CAPTION,
-                duration = 2000L
-            )
-            
-            response.text?.let {
-                Log.d(TAG, "Successfully received response from model. Length: ${it.length}")
-                return it
-            }
-            val reason = response.promptFeedback?.blockReason?.name ?: "UNKNOWN"
-            throw ContentBlockedException("Blocked or empty response from API. Reason: $reason")
-        } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
-            Log.e(TAG, "API call timed out after 90 seconds")
-            com.deva.voice.overlay.OverlayDispatcher.show(
-                text = "❌ API timed out!",
-                priority = com.deva.voice.overlay.OverlayPriority.CAPTION,
-                duration = 3000L
-            )
-            throw Exception("API call timed out after 90 seconds")
-        } catch (e: Exception) {
-            Log.e(TAG, "API call failed with error: ${e.message}", e)
-            com.deva.voice.overlay.OverlayDispatcher.show(
-                text = "❌ API Error: ${e.message?.take(50)}",
-                priority = com.deva.voice.overlay.OverlayPriority.CAPTION,
-                duration = 4000L
-            )
-            throw e
-        }
-    }
-
-    /**
-     * Converts the internal `List<GeminiMessage>` to the `List<Content>` required by the Google AI SDK.
-     */
-    private fun convertToSdkHistory(messages: List<GeminiMessage>): List<Content> {
-        return messages.map { message ->
-            val role = when (message.role) {
-                MessageRole.USER -> "user"
-                MessageRole.MODEL -> "model"
-                MessageRole.TOOL -> "tool"
-            }
-
-            content(role) {
-                message.parts.forEach { part ->
-                    if (part is TextPart) {
-                        text(part.text)
-                        if(part.text.startsWith("<agent_history>") || part.text.startsWith("Memory:")) {
-                            Log.d("GEMINIAPITEMP_INPUT", part.text)
-                        }
-                    }
-                    // Handle other part types like images here if needed in the future.
-                }
-            }
         }
     }
 
