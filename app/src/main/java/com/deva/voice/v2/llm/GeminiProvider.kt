@@ -45,8 +45,19 @@ class GeminiProvider(
         client.newCall(request).execute().use { response ->
             val body = response.body?.string()
             if (!response.isSuccessful || body.isNullOrBlank()) {
-                Log.e("GeminiProvider", "Gemini request failed: HTTP ${response.code}")
-                throw IllegalStateException("Gemini request failed with HTTP ${response.code}")
+                val safeBody = body
+                    ?.replace(apiKey, "[REDACTED]")
+                    ?.take(1000)
+                    ?: "<empty body>"
+
+                Log.e(
+                    "GeminiProvider",
+                    "Gemini request failed: HTTP ${response.code} body=$safeBody"
+                )
+
+                throw IllegalStateException(
+                    "Gemini HTTP ${response.code}: ${safeBody.take(300)}"
+                )
             }
             val text = JSONObject(body)
                 .optJSONArray("candidates")

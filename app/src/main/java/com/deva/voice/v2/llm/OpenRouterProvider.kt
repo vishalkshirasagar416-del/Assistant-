@@ -50,7 +50,15 @@ class OpenRouterProvider(
             client.newCall(request).execute().use { response ->
                 val body = response.body?.string()
                 if (!response.isSuccessful || body.isNullOrBlank()) {
-                    Log.e("OpenRouterProvider", "OpenRouter request failed: HTTP ${response.code}")
+                    val safeBody = body
+                        ?.replace(apiKey, "[REDACTED]")
+                        ?.take(1000)
+                        ?: "<empty body>"
+
+                    Log.e(
+                        "OpenRouterProvider",
+                        "OpenRouter request failed: HTTP ${response.code} body=$safeBody"
+                    )
                     return@use null
                 }
 

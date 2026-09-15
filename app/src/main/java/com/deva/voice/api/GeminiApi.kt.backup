@@ -6,12 +6,6 @@ import android.util.Log
 import com.deva.voice.BuildConfig
 import com.deva.voice.MyApplication
 import com.deva.voice.utilities.ApiKeyManager
-import com.deva.voice.v2.llm.AIProviderManager
-import com.deva.voice.v2.llm.GeminiMessage
-import com.deva.voice.v2.llm.GeminiProvider
-import com.deva.voice.v2.llm.MessageRole
-import com.deva.voice.v2.llm.OpenRouterProvider
-import com.deva.voice.v2.llm.TextPart as V2TextPart
 import com.google.ai.client.generativeai.type.ImagePart
 import com.google.ai.client.generativeai.type.TextPart
 import com.google.firebase.Firebase
@@ -38,20 +32,6 @@ import java.util.concurrent.TimeUnit
  * and logs all requests and responses to a persistent file.
  */
 object GeminiApi {
-
-    private val aiProviderManager by lazy {
-        AIProviderManager(
-            geminiProvider = GeminiProvider(
-                modelName = "gemini-2.5-flash",
-                context = MyApplication.appContext,
-                apiKeyManager = ApiKeyManager
-            ),
-            openRouterProvider = OpenRouterProvider(
-                context = MyApplication.appContext
-            )
-        )
-    }
-
     private val proxyUrl: String = BuildConfig.GCLOUD_PROXY_URL
     private val proxyKey: String = BuildConfig.GCLOUD_PROXY_URL_KEY
 
@@ -106,6 +86,8 @@ object GeminiApi {
 
         var attempts = 0
         while (attempts < maxRetry) {
+            // Get a new API key for each attempt
+            val currentApiKey = ApiKeyManager.getNextKey(context ?: MyApplication.appContext)
             Log.d("GeminiApi", "=== GEMINI API REQUEST (Attempt ${attempts + 1}) ===")
             Log.d("GeminiApi", "Model: $modelName")
 
@@ -121,54 +103,49 @@ object GeminiApi {
                     ).show()
                 }
                 
-                // Gemini is PRIMARY.
-                // OpenRouter is AUTOMATIC FALLBACK.
-                val providerMessages = chat.map { (role, parts) ->
-                    GeminiMessage(
-                        role = when (role.lowercase()) {
-                            "model", "assistant" -> MessageRole.MODEL
-                            "tool" -> MessageRole.TOOL
-                            else -> MessageRole.USER
-                        },
-                        parts = parts.mapNotNull { part ->
+                // Use direct Gemini SDK call instead of proxy
+                val generativeModel = com.google.ai.client.generativeai.GenerativeModel(
+                    modelName = modelName,
+                    apiKey = currentApiKey,
+                    generationConfig = com.google.ai.client.generativeai.type.generationConfig {
+                        responseMimeType = "application/json"
+                    }
+                )
+
+                // Convert chat history to SDK format
+                val history = chat.map { (role, parts) ->
+                    com.google.ai.client.generativeai.type.content(role = role) {
+                        parts.forEach { part ->
                             when (part) {
-                                is TextPart -> V2TextPart(part.text)
-                                else -> null
+                                is TextPart -> text(part.text)
+                                is ImagePart -> image(part.image)
                             }
                         }
-                    )
-                }
-
-                if (images.isNotEmpty()) {
-                    Log.w(
-                        "GeminiApi",
-                        "Vision request detected. Current provider path sends text parts only."
-                    )
+                    }
                 }
 
                 val requestStartTime = System.currentTimeMillis()
-
-                val responseText = aiProviderManager
-                    .generateJson(providerMessages)
-                    ?: throw Exception(
-                        "Both Gemini and OpenRouter failed. Please check your API keys and network connection."
-                    )
-
+                val response = generativeModel.generateContent(*history.toTypedArray())
                 val responseEndTime = System.currentTimeMillis()
                 val requestTime = responseEndTime - requestStartTime
                 val totalAttemptTime = responseEndTime - attemptStartTime
 
-                Log.d("GeminiApi", "=== AI RESPONSE (Attempt ${attempts + 1}) ===")
+                val responseText = response.text
+                Log.d("GeminiApi", "=== GEMINI API RESPONSE (Attempt ${attempts + 1}) ===")
                 Log.d("GeminiApi", "Request time: ${requestTime}ms")
 
-                Log.d("GeminiApi", "AI response received successfully.")
+                if (responseText.isNullOrEmpty()) {
+                    val reason = response.promptFeedback?.blockReason?.name ?: "UNKNOWN"
+                    Log.e("GeminiApi", "API call returned empty. Reason: $reason")
+                    throw Exception("Empty response from API. Reason: $reason")
+                }
 
                 val logEntry = createLogEntry(
                     attempt = attempts + 1,
                     modelName = modelName,
                     prompt = lastUserPrompt,
                     imagesCount = images.size,
-                    payload = "Gemini -> OpenRouter provider flow",
+                    payload = "Direct SDK call",
                     responseCode = 200,
                     responseBody = responseText,
                     responseTime = requestTime,
@@ -199,7 +176,7 @@ object GeminiApi {
                     modelName = modelName,
                     prompt = lastUserPrompt,
                     imagesCount = images.size,
-                    payload = "Gemini -> OpenRouter provider flow",
+                    payload = "Direct SDK call",
                     responseCode = null,
                     responseBody = null,
                     responseTime = 0,

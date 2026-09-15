@@ -16,9 +16,9 @@ object SecureApiKeyStore {
             .build()
 
         return EncryptedSharedPreferences.create(
+            context,
             PREFS_FILE,
             masterKey,
-            context,
             EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
             EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
         )

@@ -1,4 +1,5 @@
 package com.deva.voice.utilities
+import com.deva.voice.MyApplication
 
 import android.content.Context
 import java.util.concurrent.atomic.AtomicInteger
