@@ -36,7 +36,7 @@ class VisionOverlay @JvmOverloads constructor(
         setBackgroundColor(Color.parseColor("#88000000")) // Semi-transparent black background
         
         statusText = TextView(context).apply {
-            text = "DeVA Vision Analyzing..."
+            text = "Priya Vision Analyzing..."
             textSize = 18f
             setTextColor(Color.WHITE)
             layoutParams = LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT).apply {

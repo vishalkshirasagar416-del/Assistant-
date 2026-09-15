@@ -7,6 +7,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.widget.Button
+import android.widget.EditText
 import android.widget.NumberPicker
 import android.widget.RadioGroup
 import android.widget.TextView
@@ -45,6 +46,16 @@ class SettingsActivity : BaseNavigationActivity() {
     private lateinit var textGetPicovoiceKeyLink: TextView
     private lateinit var wakeWordButton: TextView
     private lateinit var buttonSignOut: Button
+    private lateinit var aiGeminiKeyInput: EditText
+    private lateinit var aiGeminiSaveButton: Button
+    private lateinit var aiGeminiClearButton: Button
+    private lateinit var aiGeminiStatus: TextView
+    private lateinit var aiOpenRouterKeyInput: EditText
+    private lateinit var aiOpenRouterSaveButton: Button
+    private lateinit var aiOpenRouterClearButton: Button
+    private lateinit var aiOpenRouterStatus: TextView
+    private lateinit var aiGeminiToggle: Button
+    private lateinit var aiOpenRouterToggle: Button
     private lateinit var wakeWordManager: WakeWordManager
     private lateinit var requestPermissionLauncher: ActivityResultLauncher<String>
 
@@ -57,7 +68,7 @@ class SettingsActivity : BaseNavigationActivity() {
     companion object {
         private const val PREFS_NAME = "BlurrSettings"
         private const val KEY_SELECTED_VOICE = "selected_voice"
-        private const val TEST_TEXT = "Hello, I'm DeVA, and this is a test of the selected voice."
+        private const val TEST_TEXT = "Hello, I'm Priya, and this is a test of the selected voice."
         private val DEFAULT_VOICE = TTSVoice.CHIRP_PUCK
         const val KEY_SHOW_THOUGHTS = "show_thoughts"
     }
@@ -109,6 +120,17 @@ class SettingsActivity : BaseNavigationActivity() {
       
         editWakeWordKey = findViewById(R.id.editWakeWordKey)
         wakeWordButton = findViewById(R.id.wakeWordButton)
+
+        aiGeminiKeyInput = findViewById(R.id.aiGeminiKeyInput)
+        aiGeminiSaveButton = findViewById(R.id.aiGeminiSaveButton)
+        aiGeminiClearButton = findViewById(R.id.aiGeminiClearButton)
+        aiGeminiStatus = findViewById(R.id.aiGeminiStatus)
+        aiOpenRouterKeyInput = findViewById(R.id.aiOpenRouterKeyInput)
+        aiOpenRouterSaveButton = findViewById(R.id.aiOpenRouterSaveButton)
+        aiOpenRouterClearButton = findViewById(R.id.aiOpenRouterClearButton)
+        aiOpenRouterStatus = findViewById(R.id.aiOpenRouterStatus)
+        aiGeminiToggle = findViewById(R.id.aiGeminiToggle)
+        aiOpenRouterToggle = findViewById(R.id.aiOpenRouterToggle)
 
         buttonSignOut = findViewById(R.id.buttonSignOut)
 
@@ -187,6 +209,60 @@ class SettingsActivity : BaseNavigationActivity() {
 
         buttonSignOut.setOnClickListener {
             showSignOutConfirmationDialog()
+        }
+
+        aiGeminiSaveButton.setOnClickListener {
+            val key = aiGeminiKeyInput.text.toString().trim()
+            if (key.isBlank()) {
+                Toast.makeText(this, "Gemini API key is empty.", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            ApiKeyManager.saveGeminiKey(this, key)
+            aiGeminiStatus.text = "Gemini: Configured"
+            Toast.makeText(this, "Gemini API key saved securely.", Toast.LENGTH_SHORT).show()
+        }
+
+        aiGeminiClearButton.setOnClickListener {
+            ApiKeyManager.clearGeminiKey(this)
+            aiGeminiKeyInput.setText("")
+            aiGeminiStatus.text = "Gemini: Not configured"
+            Toast.makeText(this, "Gemini API key cleared.", Toast.LENGTH_SHORT).show()
+        }
+
+        aiOpenRouterSaveButton.setOnClickListener {
+            val key = aiOpenRouterKeyInput.text.toString().trim()
+            if (key.isBlank()) {
+                Toast.makeText(this, "OpenRouter API key is empty.", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            ApiKeyManager.saveOpenRouterKey(this, key)
+            aiOpenRouterStatus.text = "OpenRouter: Configured"
+            Toast.makeText(this, "OpenRouter API key saved securely.", Toast.LENGTH_SHORT).show()
+        }
+
+        aiOpenRouterClearButton.setOnClickListener {
+            ApiKeyManager.clearOpenRouterKey(this)
+            aiOpenRouterKeyInput.setText("")
+            aiOpenRouterStatus.text = "OpenRouter: Not configured"
+            Toast.makeText(this, "OpenRouter API key cleared.", Toast.LENGTH_SHORT).show()
+        }
+
+        aiGeminiToggle.setOnClickListener {
+            aiGeminiKeyInput.inputType = if (aiGeminiKeyInput.inputType and android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD != 0) {
+                android.text.InputType.TYPE_CLASS_TEXT
+            } else {
+                android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
+            }
+            aiGeminiKeyInput.setSelection(aiGeminiKeyInput.text?.length ?: 0)
+        }
+
+        aiOpenRouterToggle.setOnClickListener {
+            aiOpenRouterKeyInput.inputType = if (aiOpenRouterKeyInput.inputType and android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD != 0) {
+                android.text.InputType.TYPE_CLASS_TEXT
+            } else {
+                android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
+            }
+            aiOpenRouterKeyInput.setSelection(aiOpenRouterKeyInput.text?.length ?: 0)
         }
 
         findViewById<TextView>(R.id.viewTaskLogsButton).setOnClickListener {
@@ -284,6 +360,10 @@ class SettingsActivity : BaseNavigationActivity() {
         updateWakeWordButtonState()
 
         switchShowThoughts.isChecked = sharedPreferences.getBoolean(KEY_SHOW_THOUGHTS, false)
+        aiGeminiStatus.text = "Gemini: ${ApiKeyManager.getGeminiStatus(this)}"
+        aiOpenRouterStatus.text = "OpenRouter: ${ApiKeyManager.getOpenRouterStatus(this)}"
+        aiGeminiKeyInput.setText("")
+        aiOpenRouterKeyInput.setText("")
     }
 
     private fun saveSelectedVoice(voice: TTSVoice) {

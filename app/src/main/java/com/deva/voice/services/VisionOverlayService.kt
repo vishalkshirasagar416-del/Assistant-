@@ -157,7 +157,7 @@ class VisionOverlayService : Service() {
 
     private fun createNotification(): Notification {
         return NotificationCompat.Builder(this, "OverlayServiceChannel")
-            .setContentTitle("DeVA Vision Active")
+            .setContentTitle("Priya Vision Active")
             .setContentText("Tap the floating icon to analyze.")
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .build()

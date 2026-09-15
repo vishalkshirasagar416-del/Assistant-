@@ -98,7 +98,7 @@ class EnhancedWakeWordService : Service() {
                 val serviceIntent = Intent(this, ConversationalAgentService::class.java)
                 ContextCompat.startForegroundService(this, serviceIntent)
 
-                Toast.makeText(this, "DeVA listening...", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Priya listening...", Toast.LENGTH_SHORT).show()
             } else {
                 Log.d("EnhancedWakeWordService", "Conversational agent is already running.")
             }

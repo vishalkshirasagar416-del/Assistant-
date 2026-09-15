@@ -3,7 +3,7 @@
     android:id="@+id/floatingDeVAButton"
     android:layout_width="120dp"
     android:layout_height="48dp"
-    android:text="Hey DeVA!"
+    android:text="Hey Priya!"
     android:textSize="12sp"
     android:textColor="@android:color/white"
     android:background="@drawable/floating_button_background"

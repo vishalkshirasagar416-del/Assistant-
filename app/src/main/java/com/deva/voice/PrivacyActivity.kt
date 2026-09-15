@@ -17,7 +17,7 @@ class PrivacyActivity : AppCompatActivity() {
         val toolbar = findViewById<Toolbar>(R.id.toolbar)
         setSupportActionBar(toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        supportActionBar?.title = "How DeVA Remembers"
+        supportActionBar?.title = "How Priya Remembers"
     }
     
     override fun onSupportNavigateUp(): Boolean {

@@ -71,7 +71,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="To schedule tasks at precise times, DeVA needs the 'Alarms &amp; Reminders' permission."
+                        android:text="To schedule tasks at precise times, Priya needs the 'Alarms &amp; Reminders' permission."
                         android:textColor="@color/white"/>
 
                     <Button
@@ -143,7 +143,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="To read notifications, DeVA needs permission to access them."
+                        android:text="To read notifications, Priya needs permission to access them."
                         android:textColor="@color/white"/>
 
                     <Button

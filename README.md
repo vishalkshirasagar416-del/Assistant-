@@ -132,7 +132,7 @@ DeVA is built on a sophisticated multi-agent system that separates responsibilit
 
 - 📱 Android device with API Level 26+ (Android 8.0+)
 - 🛠️ Android Studio (latest version recommended)
-- 🔑 Gemini API keys
+- 🔑 Gemini and/or OpenRouter API key, configured inside Priya after installation
 
 ### Installation
 
@@ -143,13 +143,11 @@ DeVA is built on a sophisticated multi-agent system that separates responsibilit
    ```
 
 2. **Configure API Keys**
-   
-   Create `local.properties` in the project root:
-   ```properties
-   # Option 1: Direct Gemini API keys (recommended for testing)
-   GEMINI_API_KEYS=your_api_key_1,your_api_key_2
-   
-   # Option 2: Custom proxy server
+
+  Build and launch Priya, then open **Settings > AI / API Settings**. API keys are stored in Android secure storage and are not required in `local.properties`.
+
+  For development-only proxy configuration, `local.properties` may contain:
+  ```properties
    GCLOUD_PROXY_URL=your_backend_url
    GCLOUD_PROXY_URL_KEY=your_password
    ```

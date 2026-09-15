@@ -130,7 +130,7 @@
                         android:focusable="true"
                         android:gravity="center"
                         android:padding="12dp"
-                        android:text="How to wake up DeVA"
+                        android:text="How to wake up Priya"
                         android:textSize="12sp" />
 
                     <TextView
@@ -182,12 +182,12 @@
                         android:focusable="true"
                         android:gravity="center"
                         android:padding="12dp"
-                        android:text="Make DeVA do something"
+                        android:text="Make Priya do something"
                         android:textSize="12sp" />
 
                 </LinearLayout>
 
-                <!-- Third Row: DeVA Vision -->
+                <!-- Third Row: Priya Vision -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"

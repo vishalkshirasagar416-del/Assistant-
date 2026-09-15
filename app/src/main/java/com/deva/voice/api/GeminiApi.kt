@@ -87,9 +87,8 @@ object GeminiApi {
         var attempts = 0
         while (attempts < maxRetry) {
             // Get a new API key for each attempt
-            val currentApiKey = ApiKeyManager.getNextKey()
+            val currentApiKey = ApiKeyManager.getNextKey(context ?: MyApplication.appContext)
             Log.d("GeminiApi", "=== GEMINI API REQUEST (Attempt ${attempts + 1}) ===")
-            Log.d("GeminiApi", "Using API key ending in: ...${currentApiKey.takeLast(4)}")
             Log.d("GeminiApi", "Model: $modelName")
 
             val attemptStartTime = System.currentTimeMillis()
@@ -99,7 +98,7 @@ object GeminiApi {
                 kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
                     android.widget.Toast.makeText(
                         MyApplication.appContext,
-                        "🔗 Calling Gemini (key: ...${currentApiKey.takeLast(4)})",
+                        "🔗 Calling Gemini",
                         android.widget.Toast.LENGTH_LONG
                     ).show()
                 }

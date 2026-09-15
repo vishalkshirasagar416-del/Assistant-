@@ -1,37 +1,54 @@
 package com.deva.voice.utilities
 
-import com.deva.voice.BuildConfig
+import android.content.Context
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
- * A thread-safe, singleton object to manage and rotate a list of API keys.
- * This ensures that every part of the app gets the next key in the sequence.
+ * Manages Gemini/OpenRouter API keys while keeping runtime configuration in Android secure storage.
+ * local.properties remains optional for build-time defaults only.
  */
 object ApiKeyManager {
 
-    private val apiKeys: List<String> = if (BuildConfig.GEMINI_API_KEYS.isNotEmpty()) {
-        BuildConfig.GEMINI_API_KEYS.split(",").map { it.trim() }.filter { it.isNotEmpty() }
-    } else {
-        emptyList()
-    }
-
     private val currentIndex = AtomicInteger(0)
 
-    /**
-     * Gets the next API key from the list in a circular, round-robin fashion.
-     * @return The next API key as a String.
-     */
-    fun getNextKey(): String {
-        if (apiKeys.isEmpty()) {
-            throw IllegalStateException("API key list is empty. Please add keys to ApiKeyManager.")
-        }
-        // Get the current index, then increment it for the next call.
-        // The modulo operator (%) makes it loop back to 0 when it reaches the end.
-        val index = currentIndex.getAndIncrement() % apiKeys.size
-        return apiKeys[index]
+    fun saveGeminiKey(context: Context, key: String) {
+        SecureApiKeyStore.saveGeminiKey(context, key)
     }
+
+    fun saveOpenRouterKey(context: Context, key: String) {
+        SecureApiKeyStore.saveOpenRouterKey(context, key)
+    }
+
+    fun clearGeminiKey(context: Context) {
+        SecureApiKeyStore.clearGeminiKey(context)
+    }
+
+    fun clearOpenRouterKey(context: Context) {
+        SecureApiKeyStore.clearOpenRouterKey(context)
+    }
+
+    fun getGeminiKey(context: Context): String? {
+        return SecureApiKeyStore.getGeminiKey(context)
+    }
+
+    fun getOpenRouterKey(context: Context): String? = SecureApiKeyStore.getOpenRouterKey(context)
+
+    fun hasGeminiKey(context: Context): Boolean = !getGeminiKey(context).isNullOrBlank()
+
+    fun hasOpenRouterKey(context: Context): Boolean = !getOpenRouterKey(context).isNullOrBlank()
+
+    fun hasAnyKey(context: Context): Boolean = hasGeminiKey(context) || hasOpenRouterKey(context)
+
+    fun getGeminiStatus(context: Context): String = if (hasGeminiKey(context)) "Configured" else "Not configured"
+
+    fun getOpenRouterStatus(context: Context): String = if (hasOpenRouterKey(context)) "Configured" else "Not configured"
+
+    fun getNextKey(context: Context): String {
+        val key = getGeminiKey(context)
+            ?: throw IllegalStateException("Gemini API key not configured. Please add your AI API key in Settings.")
+        return key
+    }
+
+    fun getNextKey(): String = getNextKey(MyApplication.appContext)
 }
-
-
-
 

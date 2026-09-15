@@ -30,7 +30,7 @@ object NetworkNotifier {
         Handler(Looper.getMainLooper()).post {
             Toast.makeText(
                 context,
-                "No internet connection. DeVA won’t be able to help right now.",
+                "No internet connection. Priya won’t be able to help right now.",
                 Toast.LENGTH_LONG
             ).show()
         }

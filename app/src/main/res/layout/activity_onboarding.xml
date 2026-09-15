@@ -13,7 +13,7 @@
         android:layout_height="96dp"
         android:layout_centerHorizontal="true"
         android:layout_marginTop="10dp"
-        android:contentDescription="DeVA logo"
+        android:contentDescription="Priya logo"
         android:src="@drawable/deva_logo" />
 
     <TextView

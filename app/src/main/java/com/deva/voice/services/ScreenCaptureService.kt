@@ -182,7 +182,7 @@ class ScreenCaptureService : Service() {
 
     private fun createNotification(): Notification {
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("DeVA Vision")
+            .setContentTitle("Priya Vision")
             .setContentText("Analyzing screen content...")
             .setSmallIcon(R.drawable.ic_launcher_foreground) // Ensure this resource exists or use default
             .setPriority(NotificationCompat.PRIORITY_LOW)

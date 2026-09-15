@@ -31,7 +31,6 @@ android {
     compileSdk = 35
 
     // Common API keys and configuration - extracted to avoid duplication
-    val apiKeys = localProperties.getProperty("GEMINI_API_KEYS") ?: ""
     val tavilyApiKeys = localProperties.getProperty("TAVILY_API") ?: ""
     val mem0ApiKey = localProperties.getProperty("MEM0_API") ?: ""
     val picovoiceApiKey = localProperties.getProperty("PICOVOICE_ACCESS_KEY") ?: ""
@@ -56,7 +55,6 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // Common build config fields - applies to all build types
-        buildConfigField("String", "GEMINI_API_KEYS", "\"$apiKeys\"")
         buildConfigField("String", "TAVILY_API", "\"$tavilyApiKeys\"")
         buildConfigField("String", "MEM0_API", "\"$mem0ApiKey\"")
         buildConfigField("String", "PICOVOICE_ACCESS_KEY", "\"$picovoiceApiKey\"")
@@ -127,6 +125,7 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
     implementation("com.google.android.material:material:1.11.0") // or latest
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
     implementation("com.squareup.okhttp3:okhttp:5.0.0-alpha.16")

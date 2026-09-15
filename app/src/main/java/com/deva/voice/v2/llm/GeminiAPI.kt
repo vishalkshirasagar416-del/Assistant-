@@ -1,6 +1,7 @@
 package com.deva.voice.v2.llm
 
 import android.util.Log
+import android.content.Intent
 import com.deva.voice.BuildConfig
 import com.deva.voice.utilities.ApiKeyManager
 import com.deva.voice.v2.AgentOutput
@@ -45,6 +46,13 @@ class GeminiApi(
     private val maxRetry: Int = 3
 ) {
 
+    private val geminiProvider = GeminiProvider(modelName, context, apiKeyManager)
+    private val openRouterProvider = OpenRouterProvider(context)
+    private val providerManager = AIProviderManager(
+        geminiProvider = geminiProvider,
+        openRouterProvider = openRouterProvider
+    )
+
     companion object {
         private const val TAG = "GeminiV2Api"
         private val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
@@ -82,9 +90,35 @@ class GeminiApi(
      * @return An [AgentOutput] object on success, or null if the API call or parsing fails after all retries.
      */
     suspend fun generateAgentOutput(messages: List<GeminiMessage>): AgentOutput? {
+        if (!apiKeyManager.hasGeminiKey(context) && !apiKeyManager.hasOpenRouterKey(context)) {
+            Log.i(TAG, "No AI providers configured.")
+            android.widget.Toast.makeText(
+                context.applicationContext,
+                "Please add your AI API key in Settings.",
+                android.widget.Toast.LENGTH_LONG
+            ).show()
+            context.startActivity(Intent(context, com.deva.voice.SettingsActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            })
+            return null
+        }
         val jsonString = retryWithBackoff(times = maxRetry) {
-            performApiCall(messages)
-        } ?: return null
+            val raw = providerManager.generateJson(messages)
+            if (raw.isNullOrBlank()) {
+                if (!apiKeyManager.hasGeminiKey(context) && !apiKeyManager.hasOpenRouterKey(context)) {
+                    throw IllegalStateException("Please add your AI API key in Settings.")
+                }
+                throw IllegalStateException("Priya couldn't connect to her AI services right now. Please check your API settings or internet connection.")
+            }
+            raw
+        } ?: run {
+            android.widget.Toast.makeText(
+                context.applicationContext,
+                "Priya couldn't connect to her AI services right now. Please check your API settings or internet connection.",
+                android.widget.Toast.LENGTH_LONG
+            ).show()
+            return null
+        }
 
         // Log the task
         try {
@@ -109,9 +143,8 @@ class GeminiApi(
      * the secure proxy or a direct API call.
      */
     private suspend fun performApiCall(messages: List<GeminiMessage>): String {
-        // Force direct API call - proxy not configured
-        Log.i(TAG, "Using direct Gemini SDK call.")
-        return performDirectApiCall(messages)
+        return providerManager.generateJson(messages)
+            ?: throw IllegalStateException("Please add your AI API key in Settings.")
     }
 
     /**
@@ -150,8 +183,7 @@ class GeminiApi(
      * DIRECT MODE: Performs the API call using the embedded Google AI SDK.
      */
     private suspend fun performDirectApiCall(messages: List<GeminiMessage>): String {
-        val apiKey = apiKeyManager.getNextKey()
-        Log.d(TAG, "Using API key ending in ...${apiKey.takeLast(6)}")
+        val apiKey = apiKeyManager.getNextKey(context)
         Log.d(TAG, "Model name = $modelName, messages = ${messages.size}")
         
         // Show visible debug message
@@ -162,7 +194,7 @@ class GeminiApi(
         )
         
         val generativeModel = modelCache.getOrPut(apiKey) {
-            Log.d(TAG, "Creating new GenerativeModel instance for key ending in ...${apiKey.takeLast(4)}")
+            Log.d(TAG, "Creating new GenerativeModel instance")
             GenerativeModel(
                 modelName = modelName,
                 apiKey = apiKey,
@@ -245,7 +277,7 @@ class GeminiApi(
      * @return The generated text content as a String, or null on failure.
      */
     suspend fun generateGroundedContent(prompt: String): String? {
-        val apiKey = apiKeyManager.getNextKey() // Reuse your existing key manager
+        val apiKey = apiKeyManager.getNextKey(context) // Reuse your existing key manager
 
         val mediaType = "application/json; charset=utf-8".toMediaType()
         val url = "https://generativelanguage.googleapis.com/v1beta/models/$modelName:generateContent"

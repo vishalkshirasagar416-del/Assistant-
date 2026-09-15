@@ -47,7 +47,6 @@ object EmbeddingService {
         while (attempts < maxRetries) {
             val currentApiKey = ApiKeyManager.getNextKey()
             Log.d("EmbeddingService", "=== EMBEDDING API REQUEST (Attempt ${attempts + 1}) ===")
-            Log.d("EmbeddingService", "Using API key ending in: ...${currentApiKey.takeLast(4)}")
             Log.d("EmbeddingService", "Task type: $taskType")
             Log.d("EmbeddingService", "Text: ${text.take(100)}...")
             
@@ -63,7 +62,8 @@ object EmbeddingService {
                 }
                 
                 val request = Request.Builder()
-                    .url("https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key=$currentApiKey")
+                    .url("https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent")
+                    .addHeader("x-goog-api-key", currentApiKey)
                     .post(payload.toString().toRequestBody("application/json".toMediaType()))
                     .build()
                 

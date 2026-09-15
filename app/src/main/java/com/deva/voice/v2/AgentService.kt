@@ -290,11 +290,11 @@ class AgentService : Service() {
         )
 
         return NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
-            .setContentTitle("DeVA Doing Task (Expand to stop DeVA)")
+            .setContentTitle("Priya doing a task")
             .setContentText(contentText)
             .addAction(
                 android.R.drawable.ic_media_pause, // Using built-in pause icon as stop button
-                "Stop DeVA",
+                "Stop Priya",
                 stopPendingIntent
             )
             .setOngoing(true) // Makes notification persistent and harder to dismiss

@@ -16,7 +16,7 @@
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
-            app:title="How DeVA Remembers"
+            app:title="How Priya Remembers"
             app:titleTextColor="@android:color/white" />
 
     </com.google.android.material.appbar.AppBarLayout>
@@ -38,7 +38,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="24dp"
-                android:text="DeVA is designed to be your personal assistant. Just like a human assistant, it becomes more helpful when it remembers key facts about you and your preferences. This screen explains exactly how that process works and how your data is protected."
+                android:text="Priya is designed to be your personal assistant. Just like a human assistant, she becomes more helpful when she remembers key facts about you and your preferences. This screen explains exactly how that process works and how your data is protected."
                 android:textColor="@android:color/white"
                 android:textSize="16sp"
                 android:lineSpacingExtra="4dp" />
@@ -96,7 +96,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="24dp"
                 android:layout_marginStart="16dp"
-                android:text="You have full control. You can visit the || My Memories || screen at any time to add new facts manually, ensuring DeVA knows exactly what you want it to."
+                android:text="You have full control. You can visit the || My Memories || screen at any time to add new facts manually, ensuring Priya knows exactly what you want her to."
                 android:textColor="@android:color/white"
                 android:textSize="14sp"
                 android:lineSpacingExtra="2dp" />
@@ -154,7 +154,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="24dp"
                 android:layout_marginStart="16dp"
-                android:text="To find relevant information without constantly re-reading your memories, each memory is converted into a numerical representation called an embedding. This allows DeVA to find the most relevant facts for a new request by comparing numbers, not by reading the raw text of every memory you have stored."
+                android:text="To find relevant information without constantly re-reading your memories, each memory is converted into a numerical representation called an embedding. This allows Priya to find the most relevant facts for a new request by comparing numbers, not by reading the raw text of every memory you have stored."
                 android:textColor="@android:color/white"
                 android:textSize="14sp"
                 android:lineSpacingExtra="2dp" />
@@ -197,12 +197,12 @@
                 android:textSize="14sp"
                 android:lineSpacingExtra="2dp" />
 
-            <!-- Only DeVA -->
+            <!-- Only Priya -->
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="8dp"
-                android:text="• Only DeVA (On Your Device):"
+                android:text="• Only Priya (On Your Device):"
                 android:textColor="@android:color/white"
                 android:textSize="16sp"
                 android:textStyle="bold" />
@@ -212,7 +212,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
                 android:layout_marginStart="16dp"
-                android:text="The DeVA agent running on your phone accesses this local database to personalize your conversations and carry out tasks more effectively. This access is confined to your device."
+                android:text="The Priya agent running on your phone accesses this local database to personalize your conversations and carry out tasks more effectively. This access is confined to your device."
                 android:textColor="@android:color/white"
                 android:textSize="14sp"
                 android:lineSpacingExtra="2dp" />
